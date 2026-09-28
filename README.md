@@ -15,9 +15,12 @@ Open the URL printed by Vite. The development server binds to `0.0.0.0` for remo
 
 ```sh
 npm test          # run unit and component tests with Vitest
+npm run lint      # ESLint (includes the React Hooks rules)
 npm run build     # production assets in dist/
 npm run preview   # preview the production build
 ```
+
+Lint, tests and build are the release gates. A ready-to-use GitHub Actions workflow that runs all three is provided at `.github/workflows/ci.yml`; committing it needs a push token with the `workflows` permission.
 
 Deploy `dist/` on any static HTTPS host. No secrets, API keys or backend are needed for this demonstration. Navigation uses React state rather than route URLs.
 
@@ -27,15 +30,16 @@ Deploy `dist/` on any static HTTPS host. No secrets, API keys or backend are nee
 - Home editorial feature and curated collection artwork with graceful image fallback placeholders.
 - Discovery with mood filtering and case-insensitive search across collections and individual tracks (title, artist, album).
 - Collection detail views with playable demo tracks.
-- Audio play/pause, next/previous, shuffle, repeat, seeking and volume.
+- Audio play/pause, next/previous, shuffle, three-state repeat (off / all / one), seeking, and volume that restores your last audible level after muting.
 - Queue panel and browser audio-output information.
 - Favorite tracks, saved collections, persistent user settings, and custom playlists persisted in localStorage.
 - Custom playlist management: create, add tracks to playlists, remove tracks, and delete playlists.
 - Library and liked-song views, including empty states.
-- Preferences for compact artwork and repeat; informational guest profile.
+- Preferences for compact artwork and repeat mode; informational guest profile.
 - Clearly labeled non-purchasable Plus roadmap.
 - Keyboard-focus styles, labeled controls, reduced-motion support and skip navigation.
-- Automated Vitest test suite covering utilities, fixtures, storage, and components.
+- Dialogs that trap Tab, open with focus on the primary field, and return focus to the control that opened them.
+- Automated Vitest test suite covering utilities, fixtures, storage, queue navigation, repeat modes, and components.
 
 ## Important: prototype, not a commercial streaming service
 
@@ -53,10 +57,11 @@ All local library data lives in this browser only. Clearing site data removes it
 | `src/main.jsx` | Application bootstrap and DOM mounting |
 | `src/App.jsx` | Top-level state orchestration, keyboard shortcuts, playback handling |
 | `src/data/catalog.js` | Editorial collections, track catalog, and initial playlist fixtures |
-| `src/utils/` | Formatting utilities (`format.js`) and persistent storage adapters (`storage.js`) |
+| `src/utils/` | Formatting and search utilities (`format.js`), persistent storage adapters (`storage.js`), pure playback-order logic (`queue.js`) |
 | `src/components/` | Modular UI components: `Sidebar`, `Header`, `Player`, `Cards`, `TrackList`, `QueuePanel`, `Modals`, `ImageWithFallback` |
 | `src/views/` | Page views: `HomeView`, `DiscoverView`, `SearchView`, `LibraryView`, `LikedSongsView`, `CollectionView` |
 | `src/style.css` | Design tokens, layout, components, responsive breakpoints |
+| `eslint.config.js` | Lint rules, including the React Hooks correctness checks |
 | `tests/` | Automated test suite (Vitest + React Testing Library) |
 | `docs/PRODUCTION.md` | Commercial launch requirements and technical roadmap |
 | `docs/TESTING.md` | Verification, automated testing guide, and manual acceptance checklist |

@@ -35,10 +35,10 @@ Create a data map, retention schedule, privacy policy, terms and cookie/consent 
 
 ## 6. Accessibility and quality gates
 
-Target WCAG 2.2 AA. Audit muted typography and image-overlay contrast, zoom/reflow, visible focus, screen-reader announcements, touch targets, modal focus trapping and keyboard controls. Replace nested track-row action patterns with separate semantic controls before release. Provide fallback art and offline/network error states. Internationalize text, date/time and payment formatting.
+Target WCAG 2.2 AA. Audit muted typography and image-overlay contrast, zoom/reflow, visible focus, screen-reader announcements, touch targets, modal focus trapping (implemented and tested) and keyboard controls. Replace nested track-row action patterns with separate semantic controls before release. Provide fallback art and offline/network error states. Internationalize text, date/time and payment formatting.
 
-Automate unit tests for filtering, queue navigation, repeat, storage migration and API errors. Add browser tests for playback, navigation, favorites, playlists, mobile layouts, authentication and purchases. Use axe scans, real assistive-technology testing, load testing and dependency scanning.
+Unit tests now cover filtering, queue navigation, repeat modes, storage migration and playback state. Still to add: API error handling, once an API layer exists. Add browser tests for playback, navigation, favorites, playlists, mobile layouts, authentication and purchases. Use axe scans, real assistive-technology testing, load testing and dependency scanning.
 
 ## 7. Delivery and observability
 
-Add CI build/test/lint gates, preview deployments, staged releases and rollback capability. Define availability and playback-start SLOs, error tracking, privacy-preserving performance metrics, incident response and backup/restore exercises. Test migrations and disaster recovery. Obtain a final rights, security, accessibility and legal sign-off before opening paid subscriptions.
+A lint/test/build CI workflow is provided (`.github/workflows/ci.yml`); the remaining delivery work is preview deployments, staged releases and rollback capability. Define availability and playback-start SLOs, error tracking, privacy-preserving performance metrics, incident response and backup/restore exercises. Test migrations and disaster recovery. Obtain a final rights, security, accessibility and legal sign-off before opening paid subscriptions.

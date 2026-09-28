@@ -1,6 +1,66 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { X, Leaf, Plus, ArrowRight, Check } from "lucide-react";
 import { tracks } from "../data/catalog";
+import { normalizeRepeat } from "../utils/queue";
+
+const REPEAT_OPTIONS = [
+  { value: "off", label: "Off" },
+  { value: "all", label: "All" },
+  { value: "one", label: "One" },
+];
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function focusableWithin(node) {
+  return Array.from(node.querySelectorAll(FOCUSABLE)).filter(
+    (el) => !el.hasAttribute("hidden") && !el.closest("[hidden]")
+  );
+}
+
+/**
+ * Mounted only while the create-playlist dialog is open, so an abandoned
+ * draft is discarded automatically when the dialog closes.
+ */
+function CreatePlaylistForm({ playlists, onCreatePlaylist, onClose, notify }) {
+  const [name, setName] = useState("");
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        const exists = playlists.some(
+          (p) => p.name.toLowerCase() === trimmed.toLowerCase()
+        );
+        if (exists) {
+          notify("A playlist with that name already exists.");
+          return;
+        }
+        onCreatePlaylist(trimmed);
+        onClose();
+      }}
+    >
+      <label>
+        Playlist name
+        <input
+          autoFocus
+          data-autofocus="true"
+          required
+          maxLength={60}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="A soundtrack for…"
+        />
+      </label>
+      <p>Your playlist will be saved in this browser.</p>
+      <button className="olive-btn" type="submit">
+        <Plus size={17} /> Create playlist
+      </button>
+    </form>
+  );
+}
 
 export function Modals({
   modal,
@@ -18,7 +78,48 @@ export function Modals({
   onVisitLibrary,
   notify,
 }) {
-  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const dialogRef = useRef(null);
+  const restoreFocusRef = useRef(null);
+
+  // Keep Tab inside the dialog while it is open, then hand focus back to
+  // whatever opened it.
+  useEffect(() => {
+    if (!modal) return undefined;
+
+    const node = dialogRef.current;
+    if (!node) return undefined;
+
+    restoreFocusRef.current = document.activeElement;
+    const preferred =
+      node.querySelector("[data-autofocus]") || focusableWithin(node)[0];
+    if (preferred) preferred.focus();
+
+    function handleKeyDown(event) {
+      if (event.key !== "Tab") return;
+      const items = focusableWithin(node);
+      if (!items.length) return;
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === first || !node.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      const target = restoreFocusRef.current;
+      restoreFocusRef.current = null;
+      if (target && typeof target.focus === "function") target.focus();
+    };
+  }, [modal]);
 
   if (!modal) return null;
 
@@ -29,6 +130,7 @@ export function Modals({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
+        ref={dialogRef}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -73,41 +175,12 @@ export function Modals({
         </h2>
 
         {modal === "playlist" && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const trimmed = newPlaylistName.trim();
-              if (trimmed) {
-                const exists = playlists.some(
-                  (p) => p.name.toLowerCase() === trimmed.toLowerCase()
-                );
-                if (exists) {
-                  notify("A playlist with that name already exists.");
-                  return;
-                }
-                onCreatePlaylist(trimmed);
-                setNewPlaylistName("");
-                onClose();
-              }
-            }}
-          >
-            <label>
-              Playlist name
-              <input
-                autoFocus
-                required
-                maxLength={60}
-                value={newPlaylistName}
-                onChange={(e) => setNewPlaylistName(e.target.value)}
-                placeholder="A soundtrack for…"
-              />
-            </label>
-            <p>Your playlist will be saved in this browser.</p>
-            <button className="olive-btn" type="submit">
-              <Plus size={17} />
-              Create playlist
-            </button>
-          </form>
+          <CreatePlaylistForm
+            playlists={playlists}
+            onCreatePlaylist={onCreatePlaylist}
+            onClose={onClose}
+            notify={notify}
+          />
         )}
 
         {modal === "addToPlaylist" && (
@@ -197,17 +270,28 @@ export function Modals({
                 <i />
               </button>
             </label>
-            <label className="setting-row">
-              Repeat current track
-              <button
-                className={repeat ? "toggle on" : "toggle"}
-                role="switch"
-                aria-checked={repeat}
-                onClick={() => setRepeat(!repeat)}
+            <div className="setting-row">
+              <span>Repeat</span>
+              <div
+                className="repeat-modes"
+                role="radiogroup"
+                aria-label="Repeat mode"
               >
-                <i />
-              </button>
-            </label>
+                {REPEAT_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    role="radio"
+                    aria-checked={normalizeRepeat(repeat) === option.value}
+                    className={
+                      normalizeRepeat(repeat) === option.value ? "on" : ""
+                    }
+                    onClick={() => setRepeat(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <p className="preview-note">
               Your library and playlists are stored locally. Audio requires an
               internet connection.

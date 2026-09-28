@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   Play,
   Pause,
@@ -13,7 +13,14 @@ import {
   Heart,
 } from "lucide-react";
 import { formatTime } from "../utils/format";
+import { normalizeRepeat } from "../utils/queue";
 import { ImageWithFallback } from "./ImageWithFallback";
+
+const REPEAT_LABELS = {
+  off: "Repeat off",
+  all: "Repeat all tracks",
+  one: "Repeat current track",
+};
 
 export function Player({
   track,
@@ -37,6 +44,20 @@ export function Player({
   setQueueOpen,
   onOutputInfo,
 }) {
+  // Remember the last audible level so unmuting restores it instead of
+  // snapping back to a hardcoded default.
+  const lastAudibleVolume = useRef(volume > 0 ? volume : 0.65);
+  const repeatMode = normalizeRepeat(repeat);
+
+  function changeVolume(next) {
+    if (next > 0) lastAudibleVolume.current = next;
+    setVolume(next);
+  }
+
+  function toggleMute() {
+    changeVolume(volume > 0 ? 0 : lastAudibleVolume.current);
+  }
+
   if (!track) return null;
 
   return (
@@ -90,12 +111,17 @@ export function Player({
             <SkipForward size={19} fill="currentColor" />
           </button>
           <button
-            className={repeat ? "enabled" : ""}
-            aria-label="Toggle repeat"
-            aria-pressed={repeat}
-            onClick={() => setRepeat(!repeat)}
+            className={`repeat-btn ${repeatMode !== "off" ? "enabled" : ""}`}
+            aria-label={REPEAT_LABELS[repeatMode]}
+            aria-pressed={repeatMode !== "off"}
+            onClick={() => setRepeat()}
           >
             <Repeat2 size={18} />
+            {repeatMode === "one" && (
+              <span className="repeat-badge" aria-hidden="true">
+                1
+              </span>
+            )}
           </button>
         </div>
         <div className="progress">
@@ -131,7 +157,7 @@ export function Player({
         <div className="volume">
           <button
             aria-label={volume ? "Mute" : "Unmute"}
-            onClick={() => setVolume(volume ? 0 : 0.65)}
+            onClick={toggleMute}
           >
             {volume ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
@@ -141,7 +167,7 @@ export function Player({
             max="1"
             step=".01"
             value={volume}
-            onChange={(e) => setVolume(+e.target.value)}
+            onChange={(e) => changeVolume(+e.target.value)}
             aria-label="Volume"
             style={{ "--progress": `${volume * 100}%` }}
           />

@@ -880,6 +880,21 @@ footer button {
   color: #889277;
   padding: 0;
 }
+.transport .repeat-btn {
+  position: relative;
+}
+.transport .repeat-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 1px 2px;
+  border-radius: 3px;
+  background: currentColor;
+  color: #f8f8ed;
+}
 .transport .main-play {
   border-radius: 50%;
   background: #53643e;
@@ -1196,6 +1211,26 @@ input[type="range"]::-moz-range-thumb {
 .toggle.on {
   background: #637b47;
   justify-content: flex-end;
+}
+.repeat-modes {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 20px;
+  background: #e6e9dc;
+}
+.repeat-modes button {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 20px;
+  color: #6d7a55;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.repeat-modes button.on {
+  background: #637b47;
+  color: #f8f8ed;
 }
 .profile-stats {
   display: flex;
