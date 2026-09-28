@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { SlidersHorizontal, ArrowUpRight } from "lucide-react";
 import { collections, tracks, defaultPlaylists, moods } from "./data/catalog";
-import { formatTime, filterCollections } from "./utils/format";
+import { filterCollections } from "./utils/format";
+import { nextIndex, resolveEnded, nextRepeatMode, normalizeRepeat } from "./utils/queue";
 import {
   loadLikes,
   saveLikes,
@@ -46,7 +47,7 @@ export function App() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(initialSettings.volume);
   const [shuffle, setShuffle] = useState(false);
-  const [repeat, setRepeat] = useState(initialSettings.repeat);
+  const [repeat, setRepeat] = useState(() => normalizeRepeat(initialSettings.repeat));
   const [compact, setCompact] = useState(initialSettings.compact);
   const [toast, setToast] = useState("");
 
@@ -129,17 +130,58 @@ export function App() {
   }
 
   function play(i = current) {
+    // Re-selecting the track that is already loaded should restart it rather
+    // than leave the old position showing on the progress bar.
+    if (i === current && audio.current) {
+      audio.current.currentTime = 0;
+    }
     setCurrent(i);
+    setTime(0);
+    setDuration(0);
     setPlaying(true);
   }
 
-  function next(dir = 1) {
+  function step(dir = 1) {
     setCurrent((v) =>
-      shuffle
-        ? Math.floor(Math.random() * tracks.length)
-        : (v + dir + tracks.length) % tracks.length
+      nextIndex({ current: v, length: tracks.length, dir, shuffle })
     );
     setTime(0);
+    setDuration(0);
+  }
+
+  function cycleRepeat() {
+    setRepeat((v) => nextRepeatMode(v));
+  }
+
+  function handleEnded() {
+    const result = resolveEnded({
+      current,
+      length: tracks.length,
+      repeat,
+      shuffle,
+    });
+
+    if (result.action === "replay") {
+      if (audio.current) {
+        audio.current.currentTime = 0;
+        const started = audio.current.play();
+        if (started && typeof started.catch === "function") {
+          started.catch(() => setPlaying(false));
+        }
+      }
+      setTime(0);
+      return;
+    }
+
+    if (result.action === "stop") {
+      setPlaying(false);
+      setTime(0);
+      return;
+    }
+
+    setCurrent(result.index);
+    setTime(0);
+    setDuration(0);
   }
 
   function handleSeek(newTime) {
@@ -254,16 +296,7 @@ export function App() {
         src={`https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${(track.audioIndex || current + 1)}.mp3`}
         onTimeUpdate={() => audio.current && setTime(audio.current.currentTime)}
         onLoadedMetadata={() => audio.current && setDuration(audio.current.duration)}
-        onEnded={() => {
-          if (repeat) {
-            if (audio.current) {
-              audio.current.currentTime = 0;
-              audio.current.play();
-            }
-          } else {
-            next();
-          }
-        }}
+        onEnded={handleEnded}
         onError={() => {
           if (playing) {
             setPlaying(false);
@@ -458,12 +491,12 @@ export function App() {
         current={current}
         playing={playing}
         setPlaying={setPlaying}
-        onNext={() => next(1)}
-        onPrev={() => next(-1)}
+        onNext={() => step(1)}
+        onPrev={() => step(-1)}
         shuffle={shuffle}
         setShuffle={setShuffle}
         repeat={repeat}
-        setRepeat={setRepeat}
+        setRepeat={cycleRepeat}
         time={time}
         duration={duration}
         onSeek={handleSeek}

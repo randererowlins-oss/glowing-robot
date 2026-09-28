@@ -1,9 +1,11 @@
+import { normalizeRepeat } from "./queue";
+
 export function getStoredJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return fallback;
     return JSON.parse(raw);
-  } catch (e) {
+  } catch {
     return fallback;
   }
 }
@@ -11,7 +13,7 @@ export function getStoredJSON(key, fallback) {
 export function setStoredJSON(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
+  } catch {
     // quota exceeded or private mode
   }
 }
@@ -65,10 +67,12 @@ export function savePlaylists(playlists) {
 }
 
 export function loadSettings() {
+  const storedVolume = getStoredJSON("moss-volume", null);
   return {
-    compact: getStoredJSON("moss-compact", false),
-    repeat: getStoredJSON("moss-repeat", false),
-    volume: typeof getStoredJSON("moss-volume", null) === "number" ? getStoredJSON("moss-volume", 0.65) : 0.65,
+    compact: Boolean(getStoredJSON("moss-compact", false)),
+    // Migrates the legacy boolean (true -> "one") to the three-state mode.
+    repeat: normalizeRepeat(getStoredJSON("moss-repeat", "off")),
+    volume: typeof storedVolume === "number" ? storedVolume : 0.65,
   };
 }
 

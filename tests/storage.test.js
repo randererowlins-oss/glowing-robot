@@ -66,19 +66,38 @@ describe("storage utilities", () => {
     it("returns sensible default settings when empty", () => {
       const settings = loadSettings();
       expect(settings.compact).toBe(false);
-      expect(settings.repeat).toBe(false);
+      expect(settings.repeat).toBe("off");
       expect(settings.volume).toBe(0.65);
     });
 
     it("persists individual settings", () => {
       saveSetting("compact", true);
-      saveSetting("repeat", true);
+      saveSetting("repeat", "all");
       saveSetting("volume", 0.85);
 
       const settings = loadSettings();
       expect(settings.compact).toBe(true);
-      expect(settings.repeat).toBe(true);
+      expect(settings.repeat).toBe("all");
       expect(settings.volume).toBe(0.85);
+    });
+
+    it("migrates the legacy boolean repeat flag to a repeat mode", () => {
+      localStorage.setItem("moss-repeat", JSON.stringify(true));
+      expect(loadSettings().repeat).toBe("one");
+
+      localStorage.setItem("moss-repeat", JSON.stringify(false));
+      expect(loadSettings().repeat).toBe("off");
+    });
+
+    it("falls back to defaults for unusable stored values", () => {
+      localStorage.setItem("moss-repeat", JSON.stringify("nonsense"));
+      localStorage.setItem("moss-volume", JSON.stringify("loud"));
+      localStorage.setItem("moss-compact", JSON.stringify("yes"));
+
+      const settings = loadSettings();
+      expect(settings.repeat).toBe("off");
+      expect(settings.volume).toBe(0.65);
+      expect(settings.compact).toBe(true);
     });
   });
 });
